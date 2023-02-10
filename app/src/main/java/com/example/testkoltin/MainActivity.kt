@@ -1,6 +1,10 @@
 package com.example.testkoltin
 
+import android.annotation.SuppressLint
 import android.os.Bundle
+import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.ListView
 import android.widget.TextView
@@ -11,13 +15,20 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.example.testkoltin.databinding.ActivityMainBinding
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.example.testkoltin.mqtt.MqttClientHelper
+import com.google.android.material.snackbar.Snackbar
+import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
+import org.eclipse.paho.client.mqttv3.MqttCallbackExtended
+import org.eclipse.paho.client.mqttv3.MqttException
+import org.eclipse.paho.client.mqttv3.MqttMessage
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import kotlinx.coroutines.delay
 import okhttp3.*
 import java.io.IOException
 import java.lang.reflect.Type
 
+const val MQTT_SERVER = "172.16.5.103:1883"
+const val MQTT_TOPIC = "porte_pub"
 
 class MainActivity : AppCompatActivity() {
 
@@ -28,7 +39,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         run()
-        binding = ActivityMainBinding.inflate(layoutInflater)
+        binding = ActivityMainBinding.inflate(LayoutInflater.from(this))
         setContentView(binding.root)
         val navView: BottomNavigationView = binding.navView
 
@@ -40,22 +51,27 @@ class MainActivity : AppCompatActivity() {
                 R.id.navigation_home, R.id.navigation_dashboard, R.id.navigation_notifications
             )
         )
+
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
         // Permet de rafraichir la liste toutes les 5 secondes
         Thread {
             while (true) {
+                println("----------------------")
                 valueJson = ""
                 run()
                 runOnUiThread {
                     parseValueToView()
                 }
-                Thread.sleep(10000)
+                Thread.sleep(5000)
             }
         }.start()
+        Thread.sleep(2000)
+
     }
 
     //Permet de récupérer la liste des utilisateurs et de les afficher dans la liste "userList"
+    @SuppressLint("SetTextI18n")
     fun parseValueToView (){
         val arrayAdapter: ArrayAdapter<*>
         val gson = Gson()
@@ -78,8 +94,6 @@ class MainActivity : AppCompatActivity() {
                 textView.text = logs[position].name + " - " + logs[position].date.substring(0, 10) + logs[position].date.substring(11, 19) + " - " + logs[position].serrure
             }
 
-
-
         }
         else{
             var mListView = findViewById<ListView>(R.id.userList)
@@ -87,6 +101,7 @@ class MainActivity : AppCompatActivity() {
                 android.R.layout.simple_list_item_1, listOf("Loading..."))
             mListView.adapter = arrayAdapter
         }
+
     }
     // Permet de récupérer la liste des utilisateurs dans l'API et de les stocker dans la variable "valueJson"
     fun run() {
@@ -107,6 +122,8 @@ class MainActivity : AppCompatActivity() {
             }
         })
     }
+
 }
+
 
 
